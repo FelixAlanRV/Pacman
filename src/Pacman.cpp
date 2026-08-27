@@ -7,7 +7,7 @@ Pacman::Pacman(int X, int Y, int dir)
     coord[1] = Y;
     direccion = dir;
     lastDireccion = 50;
-    int contador = 0;
+    contador = 0;
 }
 
 Pacman::~Pacman()
@@ -17,8 +17,23 @@ Pacman::~Pacman()
 
 int Pacman::obtenerDireccion() {
         return direccion;
-    }
+}
 
+float Pacman::getX() {
+    return coord[0];
+}
+
+float Pacman::getY() {
+    return coord[1];
+}
+
+void Pacman::reset(int X, int Y, int dir) {
+    coord[0] = X;
+    coord[1] = Y;
+    direccion = dir;
+    lastDireccion = 50;
+    contador = 0;
+}
 
 void Pacman::cargarMatriz(int interseccion[10][11], float* X, float*Y)
 {

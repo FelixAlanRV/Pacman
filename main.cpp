@@ -6,10 +6,15 @@
 #include <vector>
 
 #include "RgbImage.h"
+#include <math.h>
 
 //se define la cantidad de texturas que se manejaran
 #define NTextures 8
 GLuint	texture[NTextures];
+
+enum GameState { START_SCREEN, PLAYING, GAME_OVER };
+GameState currentState = START_SCREEN;
+int frameCounter = 0;
 
 int ultimaDireccion = 1;
 int matAdy[10][11];
@@ -431,9 +436,94 @@ void dibujaLaberinto() {
 
 }
 
+void drawText(float x, float y, const char *string, void* font = GLUT_BITMAP_HELVETICA_18) {
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_DEPTH_TEST);
+    glRasterPos2f(x, y);
+    while (*string) {
+        glutBitmapCharacter(font, *string++);
+    }
+    glEnable(GL_DEPTH_TEST);
+}
 
+void drawShadowText(float x, float y, const char *string, void* font, float r, float g, float b) {
+    glColor3f(0.2f, 0.2f, 0.2f); // Sombra
+    drawText(x + 2, y + 2, string, font);
+    glColor3f(r, g, b); // Color real
+    drawText(x, y, string, font);
+}
+
+void drawLargeImage(GLuint tex, float cx, float cy, float w, float h) {
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glColor3f(1.0, 1.0, 1.0); 
+    glBegin(GL_QUADS);
+        glTexCoord2f(0.0, 1.0); glVertex2f(cx - w/2, cy - h/2);
+        glTexCoord2f(1.0, 1.0); glVertex2f(cx + w/2, cy - h/2);
+        glTexCoord2f(1.0, 0.0); glVertex2f(cx + w/2, cy + h/2);
+        glTexCoord2f(0.0, 0.0); glVertex2f(cx - w/2, cy + h/2);
+    glEnd();
+    glDisable(GL_TEXTURE_2D);
+}
+
+bool checkCollision(float px, float py, float fx, float fy) {
+    return (fabs(px - fx) < 15.0 && fabs(py - fy) < 15.0);
+}
 
 void display() {
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    frameCounter++;
+    float pulse = (sin(frameCounter * 0.05f) + 1.0f) * 0.5f;
+
+    if (currentState == START_SCREEN) {
+        // Fondo negro
+        glClearColor(0.0, 0.0, 0.0, 1.0);
+
+        // Titulo animado (cambia entre amarillo intenso y blanco)
+        drawShadowText(155, 120, "P A C M A N", GLUT_BITMAP_TIMES_ROMAN_24, 1.0, 1.0, pulse);
+        
+        // Fila de personajes fija en el centro
+        drawLargeImage(texture[1], 334, 230, 48, 48); // Pacman (Derecha)
+        drawLargeImage(texture[4], 279, 230, 48, 48); // Fantasma Rojo
+        drawLargeImage(texture[5], 224, 230, 48, 48); // Fantasma Naranja
+        drawLargeImage(texture[6], 169, 230, 48, 48); // Fantasma Azul
+        drawLargeImage(texture[7], 114, 230, 48, 48); // Fantasma Rosa
+
+        // Texto inferior parpadeante
+        glColor3f(0.8 * pulse, 0.8 * pulse, 0.8 * pulse);
+        drawText(100, 380, "PRESIONA ENTER PARA JUGAR");
+        
+        glFlush();
+        Sleep(8);
+        return;
+    }
+
+    if (currentState == GAME_OVER) {
+        // Fondo negro
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+        // Decoracion superior
+        drawShadowText(145, 120, "G A M E  O V E R", GLUT_BITMAP_TIMES_ROMAN_24, 1.0, 0.2 * pulse, 0.2 * pulse);
+        
+        // Escena tragica: Pacman rodeado
+        drawLargeImage(texture[1], 224, 230, 48, 48); // Pacman atrapado (boca a la derecha)
+        drawLargeImage(texture[4], 224, 170, 48, 48); // Fantasma arriba
+        drawLargeImage(texture[5], 224, 290, 48, 48); // Fantasma abajo
+        drawLargeImage(texture[6], 164, 230, 48, 48); // Fantasma izquierda
+        drawLargeImage(texture[7], 284, 230, 48, 48); // Fantasma derecha
+
+        // Texto inferior parpadeante
+        glColor3f(pulse, pulse, pulse);
+        drawText(85, 380, "PRESIONA ENTER PARA REINICIAR");
+        
+        glFlush();
+        Sleep(8);
+        return;
+    }
+
+    // Regresar el fondo a negro para el juego
+    glClearColor(0.0, 0.0, 0.0, 1.0);
 
     int M = pacman.obtenerDireccion();
     if(pacman.obtenerDireccion() != 50){
@@ -474,6 +564,15 @@ void display() {
     pacman.draw(texture[ultimaDireccion]);
     glPopMatrix();
 
+    float px = pacman.getX();
+    float py = pacman.getY();
+    if (checkCollision(px, py, fantasma1.getX(), fantasma1.getY()) ||
+        checkCollision(px, py, fantasma2.getX(), fantasma2.getY()) ||
+        checkCollision(px, py, fantasma3.getX(), fantasma3.getY()) ||
+        checkCollision(px, py, fantasma4.getX(), fantasma4.getY())) {
+        currentState = GAME_OVER;
+    }
+
     glFlush();
     Sleep(8);
 }
@@ -481,6 +580,25 @@ void display() {
 
 void keyboard(unsigned char key, int x, int y)
 {
+    if (currentState == START_SCREEN) {
+        if (key == 13) {
+            currentState = PLAYING;
+        }
+        return;
+    }
+
+    if (currentState == GAME_OVER) {
+        if (key == 13) {
+            pacman.reset(210, 267, 50);
+            fantasma1.reset(210, 171, 1);
+            fantasma2.reset(186, 219, 1);
+            fantasma3.reset(210, 219, 0);
+            fantasma4.reset(234, 219, 3);
+            currentState = PLAYING;
+        }
+        return;
+    }
+
     switch(key)
     {
     case 'W':
@@ -515,19 +633,19 @@ void SpecialInput(int key, int x, int y)
     switch(key)
     {
         case GLUT_KEY_UP:
-            // Lógica para la tecla arriba
+            // LÃ³gica para la tecla arriba
             break;
 
         case GLUT_KEY_DOWN:
-            // Lógica para la tecla abajo
+            // LÃ³gica para la tecla abajo
             break;
 
         case GLUT_KEY_LEFT:
-            // Lógica para la tecla izquierda
+            // LÃ³gica para la tecla izquierda
             break;
 
         case GLUT_KEY_RIGHT:
-            // Lógica para la tecla derecha
+            // LÃ³gica para la tecla derecha
             break;
     }
     glutPostRedisplay();
@@ -607,7 +725,7 @@ int main(int argc, char** argv) {
     init();
 
     glutDisplayFunc(display);
-    glutIdleFunc(display); // Llamada a display cuando la app no está ocupada
+    glutIdleFunc(display); // Llamada a display cuando la app no estÃ¡ ocupada
     glutKeyboardFunc(keyboard);
     glutSpecialFunc(SpecialInput);
 

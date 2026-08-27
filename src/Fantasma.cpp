@@ -13,6 +13,20 @@ Fantasma::~Fantasma()
     //dtor
 }
 
+float Fantasma::getX() {
+    return coord[0];
+}
+
+float Fantasma::getY() {
+    return coord[1];
+}
+
+void Fantasma::reset(int X, int Y, int dir) {
+    coord[0] = X;
+    coord[1] = Y;
+    direccion = dir;
+}
+
 
 void Fantasma::cargarMatriz(int interseccion[10][11], float* X, float *Y)
 {

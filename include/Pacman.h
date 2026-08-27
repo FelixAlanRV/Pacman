@@ -14,7 +14,9 @@ class Pacman
         void guardarLastDireccion(int);
         int dirOpuesta(int);
         int obtenerDireccion();
-
+        float getX();
+        float getY();
+        void reset(int X, int Y, int dir);
 
     protected:
 

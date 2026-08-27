@@ -15,6 +15,9 @@ class Fantasma
         void draw( GLuint );
         void update();
         int dirOpuesta(int);
+        float getX();
+        float getY();
+        void reset(int X, int Y, int dir);
 
     protected:
 
