@@ -1,0 +1,7 @@
+# Build directories
+bin/
+obj/
+
+# Code::Blocks IDE files
+*.depend
+*.layout
